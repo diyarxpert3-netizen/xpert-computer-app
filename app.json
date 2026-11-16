@@ -1,0 +1,18 @@
+
+{
+  "expo": {
+    "name": "Xpert Computer",
+    "slug": "xpert-computer-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "de.xpertcomputer.app"
+    },
+    "android": {
+      "package": "de.xpertcomputer.app"
+    }
+  }
+}
