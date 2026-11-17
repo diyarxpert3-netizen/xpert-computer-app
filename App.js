@@ -29,7 +29,6 @@ const BLUE = '#1677FF';
 
 export default function App() {
   const [page, setPage] = useState('home');
-
   const [name, setName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [device, setDevice] = useState('');
@@ -40,10 +39,7 @@ export default function App() {
     try {
       await Linking.openURL(url);
     } catch (error) {
-      Alert.alert(
-        'Fehler',
-        'Der Link konnte nicht geöffnet werden.'
-      );
+      Alert.alert('Fehler', 'Der Link konnte nicht geöffnet werden.');
     }
   };
 
@@ -60,21 +56,17 @@ export default function App() {
       );
       return false;
     }
-
     return true;
   };
 
-  const createMessage = () => {
-    return (
-      `Hallo Xpert Computer!\n\n` +
-      `Neue Reparaturanfrage:\n\n` +
-      `Name: ${name}\n` +
-      `Telefon: ${customerPhone}\n` +
-      `Gerät: ${device}\n` +
-      `Problem: ${problem}\n` +
-      `Wunschtermin: ${desiredDate || 'Nicht angegeben'}`
-    );
-  };
+  const createMessage = () =>
+    `Hallo Xpert Computer!\n\n` +
+    `Neue Reparaturanfrage:\n\n` +
+    `Name: ${name}\n` +
+    `Telefon: ${customerPhone}\n` +
+    `Gerät: ${device}\n` +
+    `Problem: ${problem}\n` +
+    `Wunschtermin: ${desiredDate || 'Nicht angegeben'}`;
 
   const sendEmail = () => {
     if (!validateForm()) return;
@@ -82,7 +74,6 @@ export default function App() {
     const subject = encodeURIComponent(
       'Neue Reparaturanfrage - Xpert Computer'
     );
-
     const body = encodeURIComponent(createMessage());
 
     openLink(
@@ -100,11 +91,7 @@ export default function App() {
     );
   };
 
-  const Button = ({
-    title,
-    onPress,
-    secondary = false
-  }) => (
+  const Button = ({ title, onPress, secondary = false }) => (
     <TouchableOpacity
       style={[
         styles.button,
@@ -127,24 +114,16 @@ export default function App() {
   const Header = () => (
     <View style={styles.header}>
       <Text style={styles.logo}>
-        XPERT
-        <Text style={{ color: BLUE }}> COMPUTER</Text>
+        XPERT<Text style={{ color: BLUE }}> COMPUTER</Text>
       </Text>
-
-      <Text style={styles.tagline}>
-        {BUSINESS.subtitle}
-      </Text>
+      <Text style={styles.tagline}>{BUSINESS.subtitle}</Text>
     </View>
   );
 
   const Section = ({ title, children }) => (
     <View style={styles.privacySection}>
-      <Text style={styles.privacyHeading}>
-        {title}
-      </Text>
-      <Text style={styles.bodyText}>
-        {children}
-      </Text>
+      <Text style={styles.privacyHeading}>{title}</Text>
+      <Text style={styles.bodyText}>{children}</Text>
     </View>
   );
 
@@ -154,57 +133,29 @@ export default function App() {
         <Text style={styles.heroTitle}>
           Dein Gerät. Unsere Expertise.
         </Text>
-
         <Text style={styles.heroText}>
           Professionelle Reparaturen für Smartphones,
           Tablets und Computer.
         </Text>
-
         <Button
           title="Jetzt Reparatur anfragen"
           onPress={() => setPage('repair')}
         />
       </View>
 
-      <Text style={styles.sectionTitle}>
-        Unsere Leistungen
-      </Text>
+      <Text style={styles.sectionTitle}>Unsere Leistungen</Text>
 
       {[
-        [
-          '📱',
-          'Smartphone Reparatur',
-          'Display, Akku, Ladebuchse und mehr'
-        ],
-        [
-          '📲',
-          'Tablet Reparatur',
-          'Reparatur verschiedener Tablet-Modelle'
-        ],
-        [
-          '💻',
-          'PC & Laptop Reparatur',
-          'Hardware, Software und Fehlerdiagnose'
-        ],
-        [
-          '🔧',
-          'Lötarbeiten',
-          'Präzise Reparaturen auf Platinenebene'
-        ]
+        ['📱', 'Smartphone Reparatur', 'Display, Akku, Ladebuchse und mehr'],
+        ['📲', 'Tablet Reparatur', 'Reparatur verschiedener Tablet-Modelle'],
+        ['💻', 'PC & Laptop Reparatur', 'Hardware, Software und Fehlerdiagnose'],
+        ['🔧', 'Lötarbeiten', 'Präzise Reparaturen auf Platinenebene']
       ].map((item, index) => (
         <View style={styles.service} key={index}>
-          <Text style={styles.serviceIcon}>
-            {item[0]}
-          </Text>
-
+          <Text style={styles.serviceIcon}>{item[0]}</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.serviceTitle}>
-              {item[1]}
-            </Text>
-
-            <Text style={styles.serviceText}>
-              {item[2]}
-            </Text>
+            <Text style={styles.serviceTitle}>{item[1]}</Text>
+            <Text style={styles.serviceText}>{item[2]}</Text>
           </View>
         </View>
       ))}
@@ -213,7 +164,6 @@ export default function App() {
         <Text style={styles.sectionTitle}>
           Warum Xpert Computer?
         </Text>
-
         <Text style={styles.bodyText}>
           ✓ Persönlicher Kundenservice{"\n"}
           ✓ Professionelle Reparaturen{"\n"}
@@ -232,10 +182,7 @@ export default function App() {
 
   const Repair = () => (
     <View>
-      <Text style={styles.sectionTitle}>
-        Reparaturanfrage
-      </Text>
-
+      <Text style={styles.sectionTitle}>Reparaturanfrage</Text>
       <Text style={styles.bodyText}>
         Beschreibe dein Gerät und das Problem.
         Wir melden uns bei dir.
@@ -290,25 +237,19 @@ export default function App() {
       />
 
       <Text style={styles.smallText}>
-        Deine Angaben werden in eine vorbereitete
-        Nachricht übernommen. Erst wenn du die
-        Nachricht in deiner E-Mail- oder WhatsApp-App
-        absendest, werden sie übermittelt.
+        Deine Angaben werden in eine vorbereitete Nachricht
+        übernommen. Erst wenn du die Nachricht in deiner
+        E-Mail- oder WhatsApp-App absendest, werden sie
+        übermittelt.
       </Text>
 
-      <TouchableOpacity
-        onPress={() => setPage('privacy')}
-      >
+      <TouchableOpacity onPress={() => setPage('privacy')}>
         <Text style={styles.linkText}>
           Datenschutzerklärung lesen
         </Text>
       </TouchableOpacity>
 
-      <Button
-        title="📧 Anfrage per E-Mail"
-        onPress={sendEmail}
-      />
-
+      <Button title="📧 Anfrage per E-Mail" onPress={sendEmail} />
       <Button
         title="💬 Anfrage über WhatsApp"
         onPress={sendWhatsApp}
@@ -319,49 +260,28 @@ export default function App() {
 
   const Contact = () => (
     <View>
-      <Text style={styles.sectionTitle}>
-        Kontakt
-      </Text>
-
-      <Text style={styles.contactTitle}>
-        {BUSINESS.name}
-      </Text>
-
-      <Text style={styles.bodyText}>
-        {BUSINESS.subtitle}
-      </Text>
+      <Text style={styles.sectionTitle}>Kontakt</Text>
+      <Text style={styles.contactTitle}>{BUSINESS.name}</Text>
+      <Text style={styles.bodyText}>{BUSINESS.subtitle}</Text>
 
       <View style={styles.infoBox}>
         <Text style={styles.label}>Inhaber</Text>
-        <Text style={styles.bodyText}>
-          {BUSINESS.owner}
-        </Text>
+        <Text style={styles.bodyText}>{BUSINESS.owner}</Text>
 
         <Text style={styles.label}>Adresse</Text>
-        <Text style={styles.bodyText}>
-          {BUSINESS.address}
-        </Text>
+        <Text style={styles.bodyText}>{BUSINESS.address}</Text>
 
         <Text style={styles.label}>Telefon</Text>
-        <Text style={styles.bodyText}>
-          {BUSINESS.phone}
-        </Text>
+        <Text style={styles.bodyText}>{BUSINESS.phone}</Text>
 
         <Text style={styles.label}>WhatsApp</Text>
-        <Text style={styles.bodyText}>
-          +49 155 67885584
-        </Text>
+        <Text style={styles.bodyText}>+49 155 67885584</Text>
 
         <Text style={styles.label}>E-Mail</Text>
-        <Text style={styles.bodyText}>
-          {BUSINESS.email}
-        </Text>
+        <Text style={styles.bodyText}>{BUSINESS.email}</Text>
       </View>
 
-      <Text style={styles.sectionTitle}>
-        Öffnungszeiten
-      </Text>
-
+      <Text style={styles.sectionTitle}>Öffnungszeiten</Text>
       <Text style={styles.bodyText}>
         Montag – Freitag: 10:00 – 18:00 Uhr{"\n"}
         Samstag: 10:00 – 14:00 Uhr{"\n"}
@@ -371,9 +291,7 @@ export default function App() {
       <Button
         title="☎ Jetzt anrufen"
         onPress={() =>
-          openLink(
-            `tel:${BUSINESS.phone.replace(/\s/g, '')}`
-          )
+          openLink(`tel:${BUSINESS.phone.replace(/\s/g, '')}`)
         }
       />
 
@@ -387,9 +305,7 @@ export default function App() {
 
       <Button
         title="📧 E-Mail schreiben"
-        onPress={() =>
-          openLink(`mailto:${BUSINESS.email}`)
-        }
+        onPress={() => openLink(`mailto:${BUSINESS.email}`)}
         secondary
       />
 
@@ -408,9 +324,7 @@ export default function App() {
 
   const Legal = () => (
     <View>
-      <Text style={styles.sectionTitle}>
-        Impressum
-      </Text>
+      <Text style={styles.sectionTitle}>Impressum</Text>
 
       <Section title="Angaben gemäß § 5 DDG">
         {BUSINESS.name}{"\n"}
@@ -592,9 +506,7 @@ export default function App() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={
-          Platform.OS === 'ios' ? 'padding' : undefined
-        }
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView
           style={styles.content}
