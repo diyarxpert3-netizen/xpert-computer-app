@@ -338,14 +338,9 @@ export default function App() {
         E-Mail: {BUSINESS.email}
       </Section>
 
-      <Text style={styles.smallText}>
-        Umsatzsteuer-Identifikationsnummer,
-        Wirtschafts-Identifikationsnummer und
-        Registerangaben sind hier nicht aufgeführt.
-        Falls entsprechende Angaben für dein Unternehmen
-        bestehen oder gesetzlich erforderlich sind,
-        müssen sie ergänzt werden.
-      </Text>
+      <Section title="Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG">
+  DE441281713
+</Section>
 
       <Text style={styles.smallText}>
         Bitte prüfe vor Veröffentlichung, ob alle
