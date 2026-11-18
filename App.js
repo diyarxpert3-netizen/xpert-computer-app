@@ -480,12 +480,12 @@ export default function App() {
   );
 
   const pages = {
-    home: <Home />,
-    repair: <Repair />,
-    contact: <Contact />,
-    legal: <Legal />,
-    privacy: <Privacy />
-  };
+  home: Home,
+  repair: Repair,
+  contact: Contact,
+  legal: Legal,
+  privacy: Privacy
+};
 
   const navigation = [
     ['home', '⌂', 'Start'],
