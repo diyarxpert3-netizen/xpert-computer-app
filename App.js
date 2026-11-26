@@ -1,753 +1,970 @@
 
 import React, { useState } from 'react';
 import {
+  Alert,
+  Linking,
+  ScrollView,
   View,
   Text,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   StyleSheet,
-  Linking,
-  Alert,
-  SafeAreaView,
-  StatusBar,
   KeyboardAvoidingView,
-  Platform
+  Platform,
+  StatusBar,
+  SafeAreaView,
 } from 'react-native';
 
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+
 const BUSINESS = {
-  name: 'Xpert Computer',
+  name: 'XPERT Technik & Reparatur',
   owner: 'Ridvan Yeter',
-  email: 'ridixpert@gmail.com',
+  address: 'Am Schliepsteiner Tor 4',
+  city: '32105 Bad Salzuflen',
   phone: '05222 7948209',
+  email: 'ridixpert@gmail.com',
   whatsapp: '4915567885584',
-  address: 'Am Schliepsteiner Tor 4, 32105 Bad Salzuflen',
-  subtitle: 'Smartphone Tablet PC Reparatur'
 };
 
-const BLUE = '#1677FF';
+const BLUE = '#1677F8';
+const BG = '#070C17';
+const CARD = '#142033';
+const BORDER = '#293D59';
+const WHITE = '#F2F6FF';
+const MUTED = '#9AAAC0';
+
+const htmlEscape = (value) =>
+  String(value || '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[char]));
 
 export default function App() {
   const [page, setPage] = useState('home');
+  const [customerType, setCustomerType] = useState('Privatkunde');
+
   const [name, setName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
+  const [phone, setPhone] = useState('');
   const [device, setDevice] = useState('');
   const [problem, setProblem] = useState('');
-  const [desiredDate, setDesiredDate] = useState('');
+  const [date, setDate] = useState('');
+  const [company, setCompany] = useState('');
 
-  const openLink = async (url) => {
-    try {
-      await Linking.openURL(url);
-    } catch (error) {
-      Alert.alert('Fehler', 'Der Link konnte nicht geöffnet werden.');
-    }
+  const [backupConfirmed, setBackupConfirmed] = useState(false);
+  const [dataLossConfirmed, setDataLossConfirmed] = useState(false);
+  const [damageConfirmed, setDamageConfirmed] = useState(false);
+  const [passwordConfirmed, setPasswordConfirmed] = useState(false);
+
+  const [busy, setBusy] = useState(false);
+
+  const resetForm = () => {
+    setName('');
+    setPhone('');
+    setDevice('');
+    setProblem('');
+    setDate('');
+    setCompany('');
+    setBackupConfirmed(false);
+    setDataLossConfirmed(false);
+    setDamageConfirmed(false);
+    setPasswordConfirmed(false);
   };
 
   const validateForm = () => {
-    if (
-      !name.trim() ||
-      !customerPhone.trim() ||
-      !device.trim() ||
-      !problem.trim()
-    ) {
+    if (!name.trim() || !phone.trim() || !device.trim() || !problem.trim()) {
       Alert.alert(
-        'Fehlende Angaben',
-        'Bitte fülle alle Pflichtfelder aus.'
+        'Angaben fehlen',
+        'Bitte fülle Name, Telefonnummer, Gerät und Fehlerbeschreibung aus.'
       );
       return false;
     }
+
+    if (
+      !backupConfirmed ||
+      !dataLossConfirmed ||
+      !damageConfirmed ||
+      !passwordConfirmed
+    ) {
+      Alert.alert(
+        'Bestätigungen erforderlich',
+        'Bitte lies alle vier Hinweise und bestätige jeden einzelnen Punkt.'
+      );
+      return false;
+    }
+
     return true;
   };
 
-  const createMessage = () =>
-    `Hallo Xpert Computer!\n\n` +
-    `Neue Reparaturanfrage:\n\n` +
-    `Name: ${name}\n` +
-    `Telefon: ${customerPhone}\n` +
-    `Gerät: ${device}\n` +
-    `Problem: ${problem}\n` +
-    `Wunschtermin: ${desiredDate || 'Nicht angegeben'}`;
-
-  const sendEmail = () => {
-    if (!validateForm()) return;
-
-    const subject = encodeURIComponent(
-      'Neue Reparaturanfrage - Xpert Computer'
-    );
-    const body = encodeURIComponent(createMessage());
-
-    openLink(
-      `mailto:${BUSINESS.email}?subject=${subject}&body=${body}`
-    );
+  const getRequestText = () => {
+    return [
+      'Neue Reparaturanfrage – XPERT Technik & Reparatur',
+      '',
+      'Kundengruppe: ' + customerType,
+      'Name: ' + name,
+      'Firma: ' + (company || 'Nicht angegeben'),
+      'Telefon: ' + phone,
+      'Gerät / Modell: ' + device,
+      'Fehlerbeschreibung: ' + problem,
+      'Wunschtermin: ' + (date || 'Kein Wunschtermin angegeben'),
+      '',
+      'Bestätigungen:',
+      'Datensicherung: Ja',
+      'Risiko eines Datenverlusts: Zur Kenntnis genommen',
+      'Vorhandene Schäden: Hinweis bestätigt',
+      'Passwörter / Zugangsdaten: Hinweis bestätigt',
+      '',
+      'Die Anfrage wird vom Kunden selbst übermittelt.',
+    ].join('\n');
   };
 
-  const sendWhatsApp = () => {
+  const sendEmail = async () => {
     if (!validateForm()) return;
 
-    const message = encodeURIComponent(createMessage());
+    const subject = encodeURIComponent('Reparaturanfrage – ' + name);
+    const body = encodeURIComponent(getRequestText());
+    const url = `mailto:${BUSINESS.email}?subject=${subject}&body=${body}`;
 
-    openLink(
-      `https://wa.me/${BUSINESS.whatsapp}?text=${message}`
-    );
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert('Fehler', 'Die E-Mail-App konnte nicht geöffnet werden.');
+    }
   };
 
-  const Button = ({ title, onPress, secondary = false }) => (
+  const sendWhatsApp = async () => {
+    if (!validateForm()) return;
+
+    const text = encodeURIComponent(getRequestText());
+    const url = `https://wa.me/${BUSINESS.whatsapp}?text=${text}`;
+
+    try {
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert('Fehler', 'WhatsApp konnte nicht geöffnet werden.');
+    }
+  };
+
+  const createRepairPdf = async () => {
+    if (!validateForm()) return;
+
+    setBusy(true);
+
+    try {
+      const html = `
+        <!DOCTYPE html>
+        <html lang="de">
+        <head>
+          <meta charset="utf-8">
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              color: #172033;
+              padding: 30px;
+              font-size: 12px;
+              line-height: 1.6;
+            }
+            h1 { color: #1268d8; font-size: 24px; }
+            h2 {
+              color: #1268d8;
+              font-size: 15px;
+              border-bottom: 1px solid #d5deeb;
+              padding-bottom: 5px;
+              margin-top: 22px;
+            }
+            .company { color: #52647c; }
+            .field {
+              padding: 7px 0;
+              border-bottom: 1px solid #e5eaf1;
+            }
+            .label { font-weight: bold; }
+            .notice {
+              background: #f0f5fc;
+              padding: 12px;
+              margin-top: 10px;
+            }
+            .footer {
+              margin-top: 35px;
+              color: #65748a;
+              font-size: 10px;
+            }
+          </style>
+        </head>
+        <body>
+          <h1>XPERT Technik & Reparatur</h1>
+          <div class="company">
+            ${htmlEscape(BUSINESS.address)} · ${htmlEscape(BUSINESS.city)}<br>
+            Telefon: ${htmlEscape(BUSINESS.phone)}<br>
+            E-Mail: ${htmlEscape(BUSINESS.email)}
+          </div>
+
+          <h2>Reparaturanfrage</h2>
+          <div class="field"><span class="label">Kundengruppe:</span> ${htmlEscape(customerType)}</div>
+          <div class="field"><span class="label">Name:</span> ${htmlEscape(name)}</div>
+          <div class="field"><span class="label">Firma:</span> ${htmlEscape(company || 'Nicht angegeben')}</div>
+          <div class="field"><span class="label">Telefon:</span> ${htmlEscape(phone)}</div>
+          <div class="field"><span class="label">Gerät / Modell:</span> ${htmlEscape(device)}</div>
+          <div class="field"><span class="label">Fehlerbeschreibung:</span><br>${htmlEscape(problem)}</div>
+          <div class="field"><span class="label">Wunschtermin:</span> ${htmlEscape(date || 'Nicht angegeben')}</div>
+
+          <h2>Bestätigte Hinweise</h2>
+          <div class="notice">
+            ✓ Hinweis zur Datensicherung gelesen und bestätigt.<br>
+            ✓ Hinweis auf ein mögliches Datenverlustrisiko gelesen und bestätigt.<br>
+            ✓ Hinweis zur Mitteilung bereits vorhandener Schäden bestätigt.<br>
+            ✓ Hinweis zum Umgang mit Passwörtern und Zugangsdaten bestätigt.
+          </div>
+
+          <h2>Wichtige Informationen</h2>
+          <p>
+            Bitte sichere deine persönlichen Daten vor der Abgabe deines Geräts.
+            Bei Diagnose und Reparatur kann ein Datenverlust nicht vollständig
+            ausgeschlossen werden. Bei geplanten Maßnahmen, die Daten löschen
+            können, soll dies nach Möglichkeit vorher mit dem Kunden besprochen werden.
+          </p>
+          <p>
+            Bitte teile Passwörter oder Zugangsdaten nicht unaufgefordert mit.
+            Falls ein Zugang für die Prüfung erforderlich ist, sollte eine
+            sichere Vorgehensweise mit XPERT vereinbart werden.
+          </p>
+          <p>
+            Bereits vorhandene Schäden sollen vor der Reparatur mitgeteilt werden.
+            Die gesetzlichen Rechte und Haftungsregeln bleiben unberührt.
+            Diese PDF ist eine Kopie der vom Kunden vorbereiteten Reparaturanfrage
+            und keine pauschale Haftungsfreistellung.
+          </p>
+
+          <div class="footer">
+            Erstellt am ${new Date().toLocaleDateString('de-DE')}<br>
+            ${htmlEscape(BUSINESS.name)}
+          </div>
+        </body>
+        </html>
+      `;
+
+      const result = await Print.printToFileAsync({ html });
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(result.uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Reparaturanfrage als PDF teilen',
+          UTI: 'com.adobe.pdf',
+        });
+      } else {
+        Alert.alert(
+          'PDF erstellt',
+          'Die PDF wurde erstellt. Die Teilen-Funktion ist auf diesem Gerät nicht verfügbar.'
+        );
+      }
+    } catch (error) {
+      Alert.alert('PDF-Fehler', String(error.message || error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const openWebsiteEmail = () => {
+    Linking.openURL(`mailto:${BUSINESS.email}`);
+  };
+
+  const openBusinessWhatsApp = () => {
+    Linking.openURL(`https://wa.me/${BUSINESS.whatsapp}`);
+  };
+
+  const Header = ({ title }) => (
+    <View style={styles.header}>
+      <Text style={styles.headerTitle}>{title}</Text>
+      <Text style={styles.headerSubtitle}>XPERT Technik & Reparatur</Text>
+    </View>
+  );
+
+  const ActionButton = ({ title, onPress, secondary = false }) => (
     <TouchableOpacity
-      style={[
-        styles.button,
-        secondary && styles.secondaryButton
-      ]}
+      style={[styles.actionButton, secondary && styles.secondaryButton]}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Text
-        style={[
-          styles.buttonText,
-          secondary && styles.secondaryButtonText
-        ]}
-      >
+      <Text style={[styles.actionButtonText, secondary && styles.secondaryButtonText]}>
         {title}
       </Text>
     </TouchableOpacity>
   );
 
-  const Header = () => (
-    <View style={styles.header}>
-      <Text style={styles.logo}>
-        XPERT<Text style={{ color: BLUE }}> COMPUTER</Text>
-      </Text>
-      <Text style={styles.tagline}>{BUSINESS.subtitle}</Text>
+  const Field = ({ label, value, onChangeText, placeholder, multiline = false, keyboardType }) => (
+    <View style={styles.fieldWrap}>
+      <Text style={styles.label}>{label}</Text>
+      <TextInput
+        style={[styles.input, multiline && styles.multiline]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor="#8292A8"
+        multiline={multiline}
+        textAlignVertical={multiline ? 'top' : 'center'}
+        keyboardType={keyboardType || 'default'}
+      />
     </View>
   );
 
-  const Section = ({ title, children }) => (
-    <View style={styles.privacySection}>
-      <Text style={styles.privacyHeading}>{title}</Text>
-      <Text style={styles.bodyText}>{children}</Text>
-    </View>
+  const CheckItem = ({ checked, onPress, children }) => (
+    <TouchableOpacity
+      style={styles.checkRow}
+      onPress={() => onPress(!checked)}
+      activeOpacity={0.75}
+    >
+      <View style={[styles.checkbox, checked && styles.checkboxChecked]}>
+        {checked ? <Text style={styles.checkMark}>✓</Text> : null}
+      </View>
+      <Text style={styles.checkText}>{children}</Text>
+    </TouchableOpacity>
   );
 
   const Home = () => (
-    <View>
+    <ScrollView contentContainerStyle={styles.content}>
       <View style={styles.hero}>
-        <Text style={styles.heroTitle}>
-          Dein Gerät. Unsere Expertise.
+        <Text style={styles.owner}>Ridvan Yeter</Text>
+        <Text style={styles.logo}>XPERT</Text>
+        <Text style={styles.heroSubtitle}>TECHNIK & REPARATUR</Text>
+        <Text style={styles.heroServices}>
+          Smartphone · Tablet · PC · Konsole · Platinen · Elektronik
         </Text>
-        <Text style={styles.heroText}>
-          Professionelle Reparaturen für Smartphones,
-          Tablets und Computer.
-        </Text>
-        <Button
-          title="Jetzt Reparatur anfragen"
-          onPress={() => setPage('repair')}
-        />
+        <View style={styles.heroLine} />
+        <Text style={styles.address}>{BUSINESS.address}</Text>
+        <Text style={styles.address}>{BUSINESS.city}</Text>
+        <Text style={styles.address}>{BUSINESS.phone}</Text>
+        <View style={styles.heroButtons}>
+          <TouchableOpacity
+            style={styles.heroButton}
+            onPress={() => {
+              setCustomerType('Privatkunde');
+              setPage('repair');
+            }}
+          >
+            <Text style={styles.heroButtonText}>♙ Privatkunden</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.heroButton}
+            onPress={() => {
+              setCustomerType('Geschäftskunde (B2B)');
+              setPage('repair');
+            }}
+          >
+            <Text style={styles.heroButtonText}>▤ Geschäftskunden</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={styles.sectionTitle}>Unsere Leistungen</Text>
-
       {[
-        ['📱', 'Smartphone Reparatur', 'Display, Akku, Ladebuchse und mehr'],
-        ['📲', 'Tablet Reparatur', 'Reparatur verschiedener Tablet-Modelle'],
-        ['💻', 'PC & Laptop Reparatur', 'Hardware, Software und Fehlerdiagnose'],
-        ['🔧', 'Lötarbeiten', 'Präzise Reparaturen auf Platinenebene']
-      ].map((item, index) => (
-        <View style={styles.service} key={index}>
-          <Text style={styles.serviceIcon}>{item[0]}</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.serviceTitle}>{item[1]}</Text>
-            <Text style={styles.serviceText}>{item[2]}</Text>
-          </View>
+        '📱 Smartphone Reparatur',
+        '💻 Laptop & PC Reparatur',
+        '📲 Tablet Reparatur',
+        '🔋 Akku Austausch',
+        '🖥️ Display Reparatur',
+        '🔌 Ladebuchsen Reparatur',
+        '🔬 Mikrolöten und Platinenreparatur',
+        '🎮 PS5 HDMI- und USB-Reparatur',
+        '⚙️ Software und Diagnose',
+      ].map((item) => (
+        <View key={item} style={styles.serviceItem}>
+          <Text style={styles.serviceText}>{item}</Text>
         </View>
       ))}
 
-      <View style={styles.infoBox}>
-        <Text style={styles.sectionTitle}>
-          Warum Xpert Computer?
-        </Text>
-        <Text style={styles.bodyText}>
-          ✓ Persönlicher Kundenservice{"\n"}
-          ✓ Professionelle Reparaturen{"\n"}
-          ✓ Transparente Kommunikation{"\n"}
-          ✓ Direkter WhatsApp-Kontakt{"\n"}
-          ✓ Einfache Reparaturanfrage
-        </Text>
-      </View>
-
-      <Button
-        title="Kontakt aufnehmen"
-        onPress={() => setPage('contact')}
-      />
-    </View>
+      <ActionButton title="Reparaturanfrage starten" onPress={() => setPage('repair')} />
+      <ActionButton title="Kontakt aufnehmen" onPress={() => setPage('contact')} secondary />
+    </ScrollView>
   );
 
   const Repair = () => (
-    <View>
-      <Text style={styles.sectionTitle}>Reparaturanfrage</Text>
-      <Text style={styles.bodyText}>
-        Beschreibe dein Gerät und das Problem.
-        Wir melden uns bei dir.
-      </Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      style={{ flex: 1 }}
+    >
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Header title="Reparaturanfrage" />
 
-      <Text style={styles.label}>Name *</Text>
-      <TextInput
-        style={styles.input}
-        value={name}
-        onChangeText={setName}
-        placeholder="Vor- und Nachname"
-        placeholderTextColor="#8292A8"
-      />
-
-      <Text style={styles.label}>Telefonnummer *</Text>
-      <TextInput
-        style={styles.input}
-        value={customerPhone}
-        onChangeText={setCustomerPhone}
-        placeholder="Deine Telefonnummer"
-        keyboardType="phone-pad"
-        placeholderTextColor="#8292A8"
-      />
-
-      <Text style={styles.label}>Gerät / Modell *</Text>
-      <TextInput
-        style={styles.input}
-        value={device}
-        onChangeText={setDevice}
-        placeholder="z. B. iPhone 15 Pro"
-        placeholderTextColor="#8292A8"
-      />
-
-      <Text style={styles.label}>Was ist defekt? *</Text>
-      <TextInput
-        style={[styles.input, styles.multiline]}
-        value={problem}
-        onChangeText={setProblem}
-        placeholder="Beschreibe den Schaden..."
-        multiline
-        textAlignVertical="top"
-        placeholderTextColor="#8292A8"
-      />
-
-      <Text style={styles.label}>Wunschtermin</Text>
-      <TextInput
-        style={styles.input}
-        value={desiredDate}
-        onChangeText={setDesiredDate}
-        placeholder="z. B. 20.11.2026"
-        placeholderTextColor="#8292A8"
-      />
-
-      <Text style={styles.smallText}>
-        Deine Angaben werden in eine vorbereitete Nachricht
-        übernommen. Erst wenn du die Nachricht in deiner
-        E-Mail- oder WhatsApp-App absendest, werden sie
-        übermittelt.
-      </Text>
-
-      <TouchableOpacity onPress={() => setPage('privacy')}>
-        <Text style={styles.linkText}>
-          Datenschutzerklärung lesen
+        <Text style={styles.description}>
+          Ausgewählter Bereich: {customerType}
         </Text>
-      </TouchableOpacity>
+        <Text style={styles.description}>
+          Beschreibe dein Gerät und das Problem. Wir melden uns bei dir.
+        </Text>
 
-      <Button title="📧 Anfrage per E-Mail" onPress={sendEmail} />
-      <Button
-        title="💬 Anfrage über WhatsApp"
-        onPress={sendWhatsApp}
-        secondary
-      />
-    </View>
+        <View style={styles.typeRow}>
+          <TouchableOpacity
+            style={[styles.typeButton, customerType === 'Privatkunde' && styles.typeActive]}
+            onPress={() => setCustomerType('Privatkunde')}
+          >
+            <Text style={styles.typeText}>Privatkunden</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.typeButton, customerType !== 'Privatkunde' && styles.typeActive]}
+            onPress={() => setCustomerType('Geschäftskunde (B2B)')}
+          >
+            <Text style={styles.typeText}>Geschäftskunden</Text>
+          </TouchableOpacity>
+        </View>
+
+        {customerType !== 'Privatkunde' && (
+          <Field
+            label="Firmenname"
+            value={company}
+            onChangeText={setCompany}
+            placeholder="Name deiner Firma"
+          />
+        )}
+
+        <Field label="Name *" value={name} onChangeText={setName} placeholder="Vor- und Nachname" />
+        <Field
+          label="Telefonnummer *"
+          value={phone}
+          onChangeText={setPhone}
+          placeholder="Deine Telefonnummer"
+          keyboardType="phone-pad"
+        />
+        <Field
+          label="Hersteller / Gerät / Modell *"
+          value={device}
+          onChangeText={setDevice}
+          placeholder="z. B. Apple iPhone 15 Pro oder Samsung Galaxy S24 Ultra"
+        />
+        <Field
+          label="Was ist defekt? *"
+          value={problem}
+          onChangeText={setProblem}
+          placeholder="Beschreibe den Schaden..."
+          multiline
+        />
+        <Field
+          label="Wunschtermin"
+          value={date}
+          onChangeText={setDate}
+          placeholder="z. B. 20.11.2026"
+        />
+
+        <Text style={styles.sectionTitle}>Wichtige Hinweise und Bestätigungen</Text>
+        <Text style={styles.description}>
+          Bitte lies die folgenden Hinweise sorgfältig. Alle vier Bestätigungen
+          sind erforderlich, bevor du eine Anfrage versenden oder eine PDF erstellen kannst.
+        </Text>
+
+        <View style={styles.noticeBox}>
+          <CheckItem checked={backupConfirmed} onPress={setBackupConfirmed}>
+            Ich wurde darauf hingewiesen, vor der Reparatur eine Sicherung meiner
+            persönlichen Daten anzulegen. Ich weiß, dass XPERT keine vollständige
+            Datensicherung garantieren kann.
+          </CheckItem>
+
+          <CheckItem checked={dataLossConfirmed} onPress={setDataLossConfirmed}>
+            Ich habe verstanden, dass bei Diagnose, Reparatur, Softwarearbeiten
+            oder Zurücksetzen des Geräts Daten verloren gehen können. Maßnahmen,
+            die Daten löschen können, sollen nach Möglichkeit vorher mit mir
+            besprochen werden.
+          </CheckItem>
+
+          <CheckItem checked={damageConfirmed} onPress={setDamageConfirmed}>
+            Ich bestätige, dass ich bereits vorhandene Schäden, beispielsweise
+            Risse, Flüssigkeitsschäden oder frühere Reparaturversuche, mitteile.
+          </CheckItem>
+
+          <CheckItem checked={passwordConfirmed} onPress={setPasswordConfirmed}>
+            Ich wurde darauf hingewiesen, Passwörter und Zugangsdaten nicht
+            unaufgefordert weiterzugeben. Falls ein Zugang notwendig ist, soll
+            eine sichere Vorgehensweise vereinbart werden.
+          </CheckItem>
+        </View>
+
+        <Text style={styles.smallText}>
+          Deine Angaben werden in eine vorbereitete Nachricht übernommen.
+          Erst wenn du die Nachricht in deiner E-Mail- oder WhatsApp-App selbst
+          absendest, werden sie übermittelt.
+        </Text>
+
+        <TouchableOpacity onPress={() => setPage('privacy')}>
+          <Text style={styles.linkText}>Datenschutzerklärung lesen</Text>
+        </TouchableOpacity>
+
+        <ActionButton title="✉️ Anfrage per E-Mail" onPress={sendEmail} />
+        <ActionButton title="💬 Anfrage über WhatsApp" onPress={sendWhatsApp} secondary />
+        <ActionButton
+          title={busy ? 'PDF wird erstellt ...' : '📄 Reparaturanfrage als PDF erstellen'}
+          onPress={createRepairPdf}
+          secondary
+        />
+
+        <Text style={styles.smallText}>
+          Die PDF ist eine Kopie deiner Anfrage. Sie ist keine pauschale
+          Haftungsfreistellung. Die gesetzlichen Rechte bleiben unberührt.
+        </Text>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 
   const Contact = () => (
-    <View>
-      <Text style={styles.sectionTitle}>Kontakt</Text>
+    <ScrollView contentContainerStyle={styles.content}>
+      <Header title="Kontakt" />
       <Text style={styles.contactTitle}>{BUSINESS.name}</Text>
-      <Text style={styles.bodyText}>{BUSINESS.subtitle}</Text>
-
       <View style={styles.infoBox}>
         <Text style={styles.label}>Inhaber</Text>
-        <Text style={styles.bodyText}>{BUSINESS.owner}</Text>
-
+        <Text style={styles.infoText}>{BUSINESS.owner}</Text>
         <Text style={styles.label}>Adresse</Text>
-        <Text style={styles.bodyText}>{BUSINESS.address}</Text>
-
+        <Text style={styles.infoText}>{BUSINESS.address}</Text>
+        <Text style={styles.infoText}>{BUSINESS.city}</Text>
         <Text style={styles.label}>Telefon</Text>
-        <Text style={styles.bodyText}>{BUSINESS.phone}</Text>
-
-        <Text style={styles.label}>WhatsApp</Text>
-        <Text style={styles.bodyText}>+49 155 67885584</Text>
-
+        <Text style={styles.infoText}>{BUSINESS.phone}</Text>
         <Text style={styles.label}>E-Mail</Text>
-        <Text style={styles.bodyText}>{BUSINESS.email}</Text>
+        <Text style={styles.infoText}>{BUSINESS.email}</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Öffnungszeiten</Text>
-      <Text style={styles.bodyText}>
-        Montag – Freitag: 10:00 – 18:00 Uhr{"\n"}
-        Samstag: 10:00 – 14:00 Uhr{"\n"}
-        Sonntag: Geschlossen
-      </Text>
+      <View style={styles.infoBox}>
+        <Text style={styles.infoText}>Montag – Freitag: 10:00 – 18:00 Uhr</Text>
+        <Text style={styles.infoText}>Samstag: 10:00 – 14:00 Uhr</Text>
+        <Text style={styles.infoText}>Sonntag: Geschlossen</Text>
+      </View>
 
-      <Button
-        title="☎ Jetzt anrufen"
-        onPress={() =>
-          openLink(`tel:${BUSINESS.phone.replace(/\s/g, '')}`)
-        }
-      />
-
-      <Button
-        title="💬 WhatsApp öffnen"
-        onPress={() =>
-          openLink(`https://wa.me/${BUSINESS.whatsapp}`)
-        }
-        secondary
-      />
-
-      <Button
-        title="📧 E-Mail schreiben"
-        onPress={() => openLink(`mailto:${BUSINESS.email}`)}
-        secondary
-      />
-
-      <Button
-        title="📍 In Google Maps öffnen"
-        onPress={() =>
-          openLink(
-            'https://www.google.com/maps/search/?api=1&query=' +
-            encodeURIComponent(BUSINESS.address)
-          )
-        }
-        secondary
-      />
-    </View>
+      <ActionButton title="E-Mail schreiben" onPress={openWebsiteEmail} />
+      <ActionButton title="WhatsApp öffnen" onPress={openBusinessWhatsApp} secondary />
+      <ActionButton title="Reparaturanfrage" onPress={() => setPage('repair')} />
+    </ScrollView>
   );
 
-  const Legal = () => (
-    <View>
-      <Text style={styles.sectionTitle}>Impressum</Text>
-
-      <Section title="Angaben gemäß § 5 DDG">
-        {BUSINESS.name}{"\n"}
-        Inhaber: {BUSINESS.owner}{"\n"}
-        Einzelunternehmen{"\n"}
-        {BUSINESS.address}
-      </Section>
-
-      <Section title="Kontakt">
-        Telefon: {BUSINESS.phone}{"\n"}
-        E-Mail: {BUSINESS.email}
-      </Section>
-
-      <Section title="Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG">
-  DE441281713
-</Section>
-
-      <Text style={styles.smallText}>
-        Bitte prüfe vor Veröffentlichung, ob alle
-        gesetzlichen Angaben für dein Unternehmen
-        vollständig sind.
+  const Impressum = () => (
+    <ScrollView contentContainerStyle={styles.content}>
+      <Header title="Impressum" />
+      <View style={styles.infoBox}>
+        <Text style={styles.contactTitle}>{BUSINESS.name}</Text>
+        <Text style={styles.infoText}>Inhaber: {BUSINESS.owner}</Text>
+        <Text style={styles.infoText}>{BUSINESS.address}</Text>
+        <Text style={styles.infoText}>{BUSINESS.city}</Text>
+        <Text style={styles.infoText}>Telefon: {BUSINESS.phone}</Text>
+        <Text style={styles.infoText}>E-Mail: {BUSINESS.email}</Text>
+      </View>
+      <Text style={styles.description}>
+        Bitte prüfe vor Veröffentlichung, ob alle gesetzlich erforderlichen
+        Angaben für dein Unternehmen vollständig sind, insbesondere die
+        zuständige Aufsichtsbehörde oder Registerangaben, falls diese für dich
+        zutreffen.
       </Text>
-    </View>
+    </ScrollView>
   );
 
   const Privacy = () => (
-    <View>
-      <Text style={styles.sectionTitle}>
-        Datenschutzerklärung
+    <ScrollView contentContainerStyle={styles.content}>
+      <Header title="Datenschutz" />
+      <Text style={styles.sectionTitle}>Datenschutzhinweise</Text>
+      <Text style={styles.description}>
+        Diese App speichert Reparaturanfragen nicht auf einem eigenen Server.
+        Die eingegebenen Angaben werden zunächst nur auf dem Gerät in eine
+        vorbereitete E-Mail oder WhatsApp-Nachricht übernommen.
       </Text>
-
-      <Section title="1. Verantwortlicher">
-        {BUSINESS.name}{"\n"}
-        Inhaber: {BUSINESS.owner}{"\n"}
-        {BUSINESS.address}{"\n"}
-        E-Mail: {BUSINESS.email}{"\n"}
-        Telefon: {BUSINESS.phone}
-      </Section>
-
-      <Section title="2. Funktionen der App">
-        Diese App stellt Informationen zu unseren
-        Reparaturleistungen bereit und ermöglicht
-        die Kontaktaufnahme per E-Mail, WhatsApp
-        und Telefon.
-
-        Die Formulareingaben werden in dieser
-        App-Version nicht an einen eigenen Server
-        von Xpert Computer übertragen oder dort
-        gespeichert. Sie bleiben während der Nutzung
-        im Arbeitsspeicher der App.
-      </Section>
-
-      <Section title="3. Reparaturanfragen per E-Mail">
-        Wenn du die E-Mail-Funktion auswählst,
-        wird eine Nachricht mit deinen Angaben
-        in deiner E-Mail-Anwendung vorbereitet.
-
-        Erst wenn du die Nachricht selbst absendest,
-        werden die Angaben über deinen E-Mail-Anbieter
-        an Xpert Computer übermittelt.
-
-        Die Verarbeitung erfolgt zur Bearbeitung
-        deiner Anfrage und gegebenenfalls zur
-        Durchführung vorvertraglicher Maßnahmen
-        oder eines Vertrags gemäß Art. 6 Abs. 1
-        lit. b DSGVO.
-      </Section>
-
-      <Section title="4. Kontakt über WhatsApp">
-        Wenn du die WhatsApp-Funktion auswählst,
-        wird eine Nachricht mit deinen Angaben
-        vorbereitet.
-
-        Du entscheidest selbst, ob du diese Nachricht
-        absendest. Bei Versand werden die Daten
-        durch WhatsApp verarbeitet und an
-        Xpert Computer übermittelt.
-
-        Es gelten zusätzlich die Datenschutzbestimmungen
-        von WhatsApp. Bitte informiere dich dort
-        über die Verarbeitung deiner Daten und
-        mögliche Übermittlungen in Drittländer.
-      </Section>
-
-      <Section title="5. Telefon und Karten">
-        Die Telefonfunktion öffnet die Telefon-App
-        deines Geräts. Die Kartenfunktion öffnet
-        Google Maps oder eine entsprechende
-        Kartenanwendung.
-
-        Bei der Nutzung dieser Dienste können
-        personenbezogene Daten an die jeweiligen
-        Anbieter übermittelt werden. Es gelten
-        deren Datenschutzbestimmungen.
-      </Section>
-
-      <Section title="6. Speicherdauer">
-        Xpert Computer speichert über diese
-        App-Version keine Reparaturanfragen
-        auf einem eigenen App-Server.
-
-        Nachrichten, die du tatsächlich absendest,
-        können in den E-Mail- und WhatsApp-Systemen
-        sowie bei Xpert Computer gespeichert werden.
-
-        Die Speicherdauer richtet sich nach dem
-        jeweiligen Zweck und gesetzlichen
-        Aufbewahrungspflichten.
-      </Section>
-
-      <Section title="7. Deine Datenschutzrechte">
-        Du hast nach Maßgabe der DSGVO insbesondere
-        das Recht auf Auskunft, Berichtigung,
-        Löschung, Einschränkung der Verarbeitung,
-        Datenübertragbarkeit und Widerspruch,
-        soweit die gesetzlichen Voraussetzungen
-        erfüllt sind.
-
-        Außerdem hast du das Recht, dich bei einer
-        Datenschutzaufsichtsbehörde zu beschweren.
-      </Section>
-
-      <Section title="8. Datenschutzaufsichtsbehörde">
-        Landesbeauftragte für Datenschutz und
-        Informationsfreiheit Nordrhein-Westfalen{"\n"}
-        Kavalleriestraße 2–4{"\n"}
-        40213 Düsseldorf{"\n"}
-        E-Mail: poststelle@ldi.nrw.de{"\n"}
-        Internet: www.ldi.nrw.de
-      </Section>
-
-      <Section title="9. Änderungen">
-        Diese Datenschutzerklärung muss angepasst
-        werden, wenn sich die App-Funktionen,
-        eingesetzten Dienste oder tatsächlichen
-        Datenverarbeitungen ändern.
-      </Section>
-
-      <Text style={styles.smallText}>
-        Hinweis: Diese Datenschutzerklärung ist
-        ein Entwurf und keine anwaltliche Prüfung.
-        Vor Veröffentlichung müssen insbesondere
-        Expo, Apple, die tatsächlich eingesetzten
-        Dienste und die betrieblichen Abläufe
-        geprüft und gegebenenfalls ergänzt werden.
+      <Text style={styles.description}>
+        Eine Übermittlung erfolgt erst, wenn du die Nachricht in deiner
+        E-Mail- oder WhatsApp-Anwendung selbst absendest. Dabei gelten auch
+        die Datenschutzbestimmungen des jeweiligen Anbieters.
       </Text>
-    </View>
+      <Text style={styles.description}>
+        Wenn du eine PDF erstellst, wird sie lokal über die Druckfunktion
+        deines Geräts erzeugt. Beim Teilen entscheidest du selbst, an welche
+        App oder Person du die Datei weitergibst.
+      </Text>
+      <Text style={styles.description}>
+        Kontakt für Datenschutzanfragen: {BUSINESS.email}
+      </Text>
+      <Text style={styles.description}>
+        Bitte lasse diese Datenschutzhinweise vor der Veröffentlichung
+        rechtlich prüfen und ergänze alle für dein Unternehmen erforderlichen
+        Angaben.
+      </Text>
+    </ScrollView>
   );
 
   const pages = {
-  home: Home,
-  repair: Repair,
-  contact: Contact,
-  legal: Legal,
-  privacy: Privacy
-};
+    home: Home,
+    repair: Repair,
+    contact: Contact,
+    impressum: Impressum,
+    privacy: Privacy,
+  };
 
-  const navigation = [
-    ['home', '⌂', 'Start'],
-    ['repair', '🔧', 'Reparatur'],
-    ['contact', '☎', 'Kontakt'],
-    ['legal', '§', 'Impressum'],
-    ['privacy', '🛡', 'Datenschutz']
-  ];
+  const CurrentPage = pages[page] || Home;
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle="light-content"
-        backgroundColor="#080D18"
-      />
+    <SafeAreaView style={styles.safe}>
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
+      <View style={styles.app}>
+        <View style={styles.topBar}>
+          <Text style={styles.topBrand}>XPERT</Text>
+          <TouchableOpacity
+            style={styles.gearButton}
+            onPress={() =>
+              Alert.alert(
+                'XPERT',
+                'XPERT Technik & Reparatur\nKontakt: ' + BUSINESS.email
+              )
+            }
+          >
+            <Text style={styles.gearText}>⚙</Text>
+          </TouchableOpacity>
+        </View>
 
-      <Header />
+        <View style={styles.main}>
+          <CurrentPage />
+        </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
-        <ScrollView
-          style={styles.content}
-          contentContainerStyle={{ paddingBottom: 35 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          {pages[page]}
-        </ScrollView>
-      </KeyboardAvoidingView>
-
-      <View style={styles.nav}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.navContent}
-        >
-          {navigation.map(([key, icon, label]) => (
+        <View style={styles.bottomNav}>
+          {[
+            ['home', '⌂', 'Start'],
+            ['repair', '🔧', 'Reparatur'],
+            ['contact', '☎️', 'Kontakt'],
+            ['impressum', '§', 'Impressum'],
+            ['privacy', '🛡️', 'Datenschutz'],
+          ].map(([key, icon, label]) => (
             <TouchableOpacity
               key={key}
               style={styles.navItem}
               onPress={() => setPage(key)}
             >
-              <Text
-                style={[
-                  styles.navIcon,
-                  page === key && { color: BLUE }
-                ]}
-              >
+              <Text style={[styles.navIcon, page === key && styles.navActive]}>
                 {icon}
               </Text>
-
-              <Text
-                style={[
-                  styles.navText,
-                  page === key && { color: BLUE }
-                ]}
-              >
+              <Text style={[styles.navLabel, page === key && styles.navActive]}>
                 {label}
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safe: {
     flex: 1,
-    backgroundColor: '#080D18'
+    backgroundColor: BG,
   },
-
+  app: {
+    flex: 1,
+    backgroundColor: BG,
+  },
+  topBar: {
+    minHeight: 48,
+    paddingHorizontal: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#17253A',
+  },
+  topBrand: {
+    color: WHITE,
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  gearButton: {
+    backgroundColor: BLUE,
+    width: 42,
+    height: 42,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gearText: {
+    color: '#FFFFFF',
+    fontSize: 25,
+  },
+  main: {
+    flex: 1,
+  },
+  content: {
+    padding: 20,
+    paddingBottom: 35,
+  },
   header: {
-    backgroundColor: '#080D18',
+    marginBottom: 18,
+  },
+  headerTitle: {
+    color: WHITE,
+    fontSize: 29,
+    fontWeight: '900',
+  },
+  headerSubtitle: {
+    color: MUTED,
+    fontSize: 14,
+    marginTop: 5,
+  },
+  hero: {
+    backgroundColor: '#101D32',
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 20,
     padding: 20,
     alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#1B2A40'
+    marginBottom: 28,
   },
-
+  owner: {
+    color: '#C5D7F2',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   logo: {
-    color: 'white',
-    fontSize: 23,
-    fontWeight: '900'
+    color: '#FFFFFF',
+    fontSize: 57,
+    fontWeight: '900',
+    letterSpacing: 2,
+    marginTop: 2,
   },
-
-  tagline: {
-    color: '#AAB8CC',
-    fontSize: 12,
-    marginTop: 5
+  heroSubtitle: {
+    color: BLUE,
+    fontSize: 22,
+    fontWeight: '900',
+    textAlign: 'center',
   },
-
-  content: {
-    flex: 1,
-    padding: 18
+  heroServices: {
+    color: '#C8D7ED',
+    textAlign: 'center',
+    marginTop: 16,
+    lineHeight: 23,
   },
-
-  hero: {
-    backgroundColor: '#142B49',
-    borderRadius: 18,
-    padding: 22,
-    marginBottom: 25
+  heroLine: {
+    height: 1,
+    backgroundColor: BORDER,
+    width: '100%',
+    marginVertical: 18,
   },
-
-  heroTitle: {
-    color: 'white',
-    fontSize: 25,
-    fontWeight: 'bold'
+  address: {
+    color: WHITE,
+    fontSize: 17,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginVertical: 3,
   },
-
-  heroText: {
-    color: '#D1DCEC',
-    marginTop: 10,
-    lineHeight: 23
-  },
-
-  sectionTitle: {
-    color: 'white',
-    fontSize: 21,
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 15
-  },
-
-  service: {
-    backgroundColor: '#121D2E',
-    borderRadius: 13,
-    padding: 15,
-    marginBottom: 10,
+  heroButtons: {
     flexDirection: 'row',
-    alignItems: 'center'
+    gap: 8,
+    marginTop: 22,
+    width: '100%',
   },
-
-  serviceIcon: {
-    fontSize: 30,
-    marginRight: 15
-  },
-
-  serviceTitle: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16
-  },
-
-  serviceText: {
-    color: '#AAB8CC',
-    marginTop: 4,
-    fontSize: 12
-  },
-
-  button: {
+  heroButton: {
     backgroundColor: BLUE,
-    padding: 15,
+    flex: 1,
+    paddingVertical: 13,
+    paddingHorizontal: 6,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 13
+    justifyContent: 'center',
   },
-
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold'
+  heroButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    textAlign: 'center',
+    fontSize: 13,
   },
-
-  secondaryButton: {
-    backgroundColor: '#1A2B42'
+  sectionTitle: {
+    color: WHITE,
+    fontSize: 23,
+    fontWeight: '900',
+    marginTop: 22,
+    marginBottom: 14,
   },
-
-  secondaryButtonText: {
-    color: '#D6E6FF'
-  },
-
-  input: {
-    backgroundColor: '#142033',
-    color: 'white',
-    borderRadius: 10,
-    padding: 14,
-    marginTop: 7,
-    marginBottom: 12,
+  serviceItem: {
+    backgroundColor: CARD,
     borderWidth: 1,
-    borderColor: '#263A54'
+    borderColor: BORDER,
+    padding: 15,
+    borderRadius: 12,
+    marginBottom: 9,
   },
-
-  multiline: {
-    height: 110
+  serviceText: {
+    color: WHITE,
+    fontSize: 16,
+    fontWeight: '600',
   },
-
+  description: {
+    color: '#C1CEE0',
+    fontSize: 16,
+    lineHeight: 25,
+    marginBottom: 15,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginVertical: 12,
+  },
+  typeButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 10,
+    padding: 12,
+    alignItems: 'center',
+  },
+  typeActive: {
+    backgroundColor: BLUE,
+    borderColor: BLUE,
+  },
+  typeText: {
+    color: WHITE,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  fieldWrap: {
+    marginBottom: 17,
+  },
   label: {
-    color: '#D6E6FF',
-    fontWeight: 'bold',
-    marginTop: 9
+    color: '#D6E3F7',
+    fontSize: 16,
+    fontWeight: '800',
+    marginBottom: 9,
   },
-
-  bodyText: {
-    color: '#C4D0E0',
-    lineHeight: 24,
-    marginBottom: 12
+  input: {
+    backgroundColor: CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 15,
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    color: WHITE,
+    fontSize: 16,
+    minHeight: 58,
   },
-
-  infoBox: {
-    backgroundColor: '#121D2E',
-    padding: 16,
-    borderRadius: 14,
-    marginTop: 15,
-    marginBottom: 15
+  multiline: {
+    minHeight: 125,
+    paddingTop: 15,
   },
-
-  contactTitle: {
-    color: 'white',
-    fontSize: 20,
-    fontWeight: 'bold'
+  noticeBox: {
+    backgroundColor: '#101B2C',
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 15,
+    padding: 14,
+    marginBottom: 16,
   },
-
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#26364C',
+  },
+  checkbox: {
+    width: 25,
+    height: 25,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#91A7C4',
+    marginRight: 12,
+    marginTop: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: BLUE,
+    borderColor: BLUE,
+  },
+  checkMark: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 17,
+  },
+  checkText: {
+    color: '#D6E3F7',
+    fontSize: 14,
+    lineHeight: 21,
+    flex: 1,
+  },
   smallText: {
-    color: '#93A4BA',
-    fontSize: 11,
+    color: MUTED,
+    fontSize: 14,
+    lineHeight: 22,
     marginTop: 12,
-    lineHeight: 17
+    marginBottom: 16,
   },
-
   linkText: {
     color: '#55A5FF',
+    fontSize: 17,
     textDecorationLine: 'underline',
-    marginTop: 12
+    fontWeight: '700',
+    marginVertical: 16,
   },
-
-  privacySection: {
-    backgroundColor: '#121D2E',
-    padding: 15,
-    borderRadius: 12,
-    marginBottom: 12
-  },
-
-  privacyHeading: {
-    color: '#55A5FF',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 10
-  },
-
-  nav: {
-    backgroundColor: '#101A2A',
-    borderTopWidth: 1,
-    borderTopColor: '#263A54',
-    paddingVertical: 9
-  },
-
-  navContent: {
-    flexGrow: 1,
-    justifyContent: 'space-around'
-  },
-
-  navItem: {
+  actionButton: {
+    backgroundColor: BLUE,
+    borderRadius: 15,
+    paddingVertical: 17,
+    paddingHorizontal: 14,
     alignItems: 'center',
-    minWidth: 68,
-    paddingHorizontal: 5
+    marginTop: 10,
   },
-
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 17,
+    fontWeight: '900',
+    textAlign: 'center',
+  },
+  secondaryButton: {
+    backgroundColor: '#1A2B43',
+    borderWidth: 1,
+    borderColor: '#345071',
+  },
+  secondaryButtonText: {
+    color: '#E1ECFC',
+  },
+  contactTitle: {
+    color: WHITE,
+    fontSize: 21,
+    fontWeight: '900',
+    marginBottom: 15,
+  },
+  infoBox: {
+    backgroundColor: CARD,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 15,
+    padding: 17,
+    marginBottom: 18,
+  },
+  infoText: {
+    color: '#D6E3F7',
+    fontSize: 16,
+    lineHeight: 25,
+    marginBottom: 8,
+  },
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#101B2C',
+    borderTopWidth: 1,
+    borderTopColor: '#263A55',
+    paddingTop: 9,
+    paddingBottom: Platform.OS === 'ios' ? 7 : 10,
+  },
+  navItem: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+  },
   navIcon: {
-    fontSize: 19,
-    color: '#AAB8CC'
+    color: '#A9B8CD',
+    fontSize: 23,
+    fontWeight: '800',
+    marginBottom: 4,
   },
-
-  navText: {
-    fontSize: 10,
-    color: '#AAB8CC',
-    marginTop: 4
-  }
+  navLabel: {
+    color: '#A9B8CD',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  navActive: {
+    color: BLUE,
+  },
 });
