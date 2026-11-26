@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Alert,
@@ -62,19 +61,6 @@ export default function App() {
 
   const [busy, setBusy] = useState(false);
 
-  const resetForm = () => {
-    setName('');
-    setPhone('');
-    setDevice('');
-    setProblem('');
-    setDate('');
-    setCompany('');
-    setBackupConfirmed(false);
-    setDataLossConfirmed(false);
-    setDamageConfirmed(false);
-    setPasswordConfirmed(false);
-  };
-
   const validateForm = () => {
     if (!name.trim() || !phone.trim() || !device.trim() || !problem.trim()) {
       Alert.alert(
@@ -115,7 +101,7 @@ export default function App() {
       'Bestätigungen:',
       'Datensicherung: Ja',
       'Risiko eines Datenverlusts: Zur Kenntnis genommen',
-      'Vorhandene Schäden: Hinweis bestätigt',
+      'Bereits vorhandene und nicht beauftragte Defekte: Hinweis bestätigt',
       'Passwörter / Zugangsdaten: Hinweis bestätigt',
       '',
       'Die Anfrage wird vom Kunden selbst übermittelt.',
@@ -149,6 +135,7 @@ export default function App() {
     }
   };
 
+  // PDF erstellen und anschließend das Teilen-Menü öffnen
   const createRepairPdf = async () => {
     if (!validateForm()) return;
 
@@ -196,6 +183,7 @@ export default function App() {
         </head>
         <body>
           <h1>XPERT Technik & Reparatur</h1>
+
           <div class="company">
             ${htmlEscape(BUSINESS.address)} · ${htmlEscape(BUSINESS.city)}<br>
             Telefon: ${htmlEscape(BUSINESS.phone)}<br>
@@ -213,10 +201,11 @@ export default function App() {
 
           <h2>Bestätigte Hinweise</h2>
           <div class="notice">
-            ✓ Hinweis zur Datensicherung gelesen und bestätigt.<br>
-            ✓ Hinweis auf ein mögliches Datenverlustrisiko gelesen und bestätigt.<br>
-            ✓ Hinweis zur Mitteilung bereits vorhandener Schäden bestätigt.<br>
-            ✓ Hinweis zum Umgang mit Passwörtern und Zugangsdaten bestätigt.
+            ✓ Datensicherung vor der Reparatur wurde bestätigt.<br>
+            ✓ Mögliches Datenverlustrisiko wurde zur Kenntnis genommen.<br>
+            ✓ Bereits vorhandene Schäden müssen mitgeteilt werden.<br>
+            ✓ Andere oder bereits vorhandene Defekte, die nicht ausdrücklich beauftragt wurden, sind nicht automatisch Bestandteil dieses Reparaturauftrags und werden nicht ohne gesonderte Beauftragung repariert. Die gesetzlichen Rechte und Haftungsregeln bleiben unberührt.<br>
+            ✓ Hinweis zum Umgang mit Passwörtern und Zugangsdaten wurde bestätigt.
           </div>
 
           <h2>Wichtige Informationen</h2>
@@ -226,14 +215,23 @@ export default function App() {
             ausgeschlossen werden. Bei geplanten Maßnahmen, die Daten löschen
             können, soll dies nach Möglichkeit vorher mit dem Kunden besprochen werden.
           </p>
+
           <p>
             Bitte teile Passwörter oder Zugangsdaten nicht unaufgefordert mit.
             Falls ein Zugang für die Prüfung erforderlich ist, sollte eine
             sichere Vorgehensweise mit XPERT vereinbart werden.
           </p>
+
           <p>
             Bereits vorhandene Schäden sollen vor der Reparatur mitgeteilt werden.
+            XPERT ist nur für die ausdrücklich beauftragten Reparaturen zuständig.
+            Andere oder bereits vorhandene Defekte, die nicht ausdrücklich beauftragt
+            wurden, sind nicht automatisch Bestandteil dieses Reparaturauftrags und
+            werden nicht ohne gesonderte Beauftragung repariert.
             Die gesetzlichen Rechte und Haftungsregeln bleiben unberührt.
+          </p>
+
+          <p>
             Diese PDF ist eine Kopie der vom Kunden vorbereiteten Reparaturanfrage
             und keine pauschale Haftungsfreistellung.
           </p>
@@ -287,6 +285,7 @@ export default function App() {
       style={[styles.actionButton, secondary && styles.secondaryButton]}
       onPress={onPress}
       activeOpacity={0.8}
+      disabled={busy}
     >
       <Text style={[styles.actionButtonText, secondary && styles.secondaryButtonText]}>
         {title}
@@ -294,7 +293,14 @@ export default function App() {
     </TouchableOpacity>
   );
 
-  const Field = ({ label, value, onChangeText, placeholder, multiline = false, keyboardType }) => (
+  const Field = ({
+    label,
+    value,
+    onChangeText,
+    placeholder,
+    multiline = false,
+    keyboardType,
+  }) => (
     <View style={styles.fieldWrap}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
@@ -336,6 +342,7 @@ export default function App() {
         <Text style={styles.address}>{BUSINESS.address}</Text>
         <Text style={styles.address}>{BUSINESS.city}</Text>
         <Text style={styles.address}>{BUSINESS.phone}</Text>
+
         <View style={styles.heroButtons}>
           <TouchableOpacity
             style={styles.heroButton}
@@ -346,6 +353,7 @@ export default function App() {
           >
             <Text style={styles.heroButtonText}>♙ Privatkunden</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.heroButton}
             onPress={() => {
@@ -359,6 +367,7 @@ export default function App() {
       </View>
 
       <Text style={styles.sectionTitle}>Unsere Leistungen</Text>
+
       {[
         '📱 Smartphone Reparatur',
         '💻 Laptop & PC Reparatur',
@@ -375,8 +384,15 @@ export default function App() {
         </View>
       ))}
 
-      <ActionButton title="Reparaturanfrage starten" onPress={() => setPage('repair')} />
-      <ActionButton title="Kontakt aufnehmen" onPress={() => setPage('contact')} secondary />
+      <ActionButton
+        title="Reparaturanfrage starten"
+        onPress={() => setPage('repair')}
+      />
+      <ActionButton
+        title="Kontakt aufnehmen"
+        onPress={() => setPage('contact')}
+        secondary
+      />
     </ScrollView>
   );
 
@@ -385,25 +401,36 @@ export default function App() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       style={{ flex: 1 }}
     >
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <Header title="Reparaturanfrage" />
 
         <Text style={styles.description}>
           Ausgewählter Bereich: {customerType}
         </Text>
+
         <Text style={styles.description}>
           Beschreibe dein Gerät und das Problem. Wir melden uns bei dir.
         </Text>
 
         <View style={styles.typeRow}>
           <TouchableOpacity
-            style={[styles.typeButton, customerType === 'Privatkunde' && styles.typeActive]}
+            style={[
+              styles.typeButton,
+              customerType === 'Privatkunde' && styles.typeActive,
+            ]}
             onPress={() => setCustomerType('Privatkunde')}
           >
             <Text style={styles.typeText}>Privatkunden</Text>
           </TouchableOpacity>
+
           <TouchableOpacity
-            style={[styles.typeButton, customerType !== 'Privatkunde' && styles.typeActive]}
+            style={[
+              styles.typeButton,
+              customerType !== 'Privatkunde' && styles.typeActive,
+            ]}
             onPress={() => setCustomerType('Geschäftskunde (B2B)')}
           >
             <Text style={styles.typeText}>Geschäftskunden</Text>
@@ -419,7 +446,13 @@ export default function App() {
           />
         )}
 
-        <Field label="Name *" value={name} onChangeText={setName} placeholder="Vor- und Nachname" />
+        <Field
+          label="Name *"
+          value={name}
+          onChangeText={setName}
+          placeholder="Vor- und Nachname"
+        />
+
         <Field
           label="Telefonnummer *"
           value={phone}
@@ -427,12 +460,14 @@ export default function App() {
           placeholder="Deine Telefonnummer"
           keyboardType="phone-pad"
         />
+
         <Field
           label="Hersteller / Gerät / Modell *"
           value={device}
           onChangeText={setDevice}
           placeholder="z. B. Apple iPhone 15 Pro oder Samsung Galaxy S24 Ultra"
         />
+
         <Field
           label="Was ist defekt? *"
           value={problem}
@@ -440,6 +475,7 @@ export default function App() {
           placeholder="Beschreibe den Schaden..."
           multiline
         />
+
         <Field
           label="Wunschtermin"
           value={date}
@@ -447,32 +483,53 @@ export default function App() {
           placeholder="z. B. 20.11.2026"
         />
 
-        <Text style={styles.sectionTitle}>Wichtige Hinweise und Bestätigungen</Text>
+        <Text style={styles.sectionTitle}>
+          Wichtige Hinweise und Bestätigungen
+        </Text>
+
         <Text style={styles.description}>
           Bitte lies die folgenden Hinweise sorgfältig. Alle vier Bestätigungen
-          sind erforderlich, bevor du eine Anfrage versenden oder eine PDF erstellen kannst.
+          sind erforderlich, bevor du eine Anfrage versenden oder eine PDF
+          erstellen kannst.
         </Text>
 
         <View style={styles.noticeBox}>
-          <CheckItem checked={backupConfirmed} onPress={setBackupConfirmed}>
-            Ich wurde darauf hingewiesen, vor der Reparatur eine Sicherung meiner
-            persönlichen Daten anzulegen. Ich weiß, dass XPERT keine vollständige
-            Datensicherung garantieren kann.
+          <CheckItem
+            checked={backupConfirmed}
+            onPress={setBackupConfirmed}
+          >
+            Ich wurde darauf hingewiesen, vor der Reparatur eine Sicherung
+            meiner persönlichen Daten anzulegen. Ich weiß, dass XPERT keine
+            vollständige Datensicherung garantieren kann.
           </CheckItem>
 
-          <CheckItem checked={dataLossConfirmed} onPress={setDataLossConfirmed}>
+          <CheckItem
+            checked={dataLossConfirmed}
+            onPress={setDataLossConfirmed}
+          >
             Ich habe verstanden, dass bei Diagnose, Reparatur, Softwarearbeiten
             oder Zurücksetzen des Geräts Daten verloren gehen können. Maßnahmen,
             die Daten löschen können, sollen nach Möglichkeit vorher mit mir
             besprochen werden.
           </CheckItem>
 
-          <CheckItem checked={damageConfirmed} onPress={setDamageConfirmed}>
+          <CheckItem
+            checked={damageConfirmed}
+            onPress={setDamageConfirmed}
+          >
             Ich bestätige, dass ich bereits vorhandene Schäden, beispielsweise
             Risse, Flüssigkeitsschäden oder frühere Reparaturversuche, mitteile.
+            Mir ist bekannt, dass XPERT nur die ausdrücklich beauftragten
+            Reparaturen ausführt. Andere oder bereits vorhandene, nicht
+            beauftragte Defekte sind nicht automatisch Bestandteil dieses
+            Reparaturauftrags und werden nicht ohne gesonderte Beauftragung
+            repariert. Die gesetzlichen Rechte bleiben unberührt.
           </CheckItem>
 
-          <CheckItem checked={passwordConfirmed} onPress={setPasswordConfirmed}>
+          <CheckItem
+            checked={passwordConfirmed}
+            onPress={setPasswordConfirmed}
+          >
             Ich wurde darauf hingewiesen, Passwörter und Zugangsdaten nicht
             unaufgefordert weiterzugeben. Falls ein Zugang notwendig ist, soll
             eine sichere Vorgehensweise vereinbart werden.
@@ -489,10 +546,23 @@ export default function App() {
           <Text style={styles.linkText}>Datenschutzerklärung lesen</Text>
         </TouchableOpacity>
 
-        <ActionButton title="✉️ Anfrage per E-Mail" onPress={sendEmail} />
-        <ActionButton title="💬 Anfrage über WhatsApp" onPress={sendWhatsApp} secondary />
         <ActionButton
-          title={busy ? 'PDF wird erstellt ...' : '📄 Reparaturanfrage als PDF erstellen'}
+          title="✉️ Anfrage per E-Mail"
+          onPress={sendEmail}
+        />
+
+        <ActionButton
+          title="💬 Anfrage über WhatsApp"
+          onPress={sendWhatsApp}
+          secondary
+        />
+
+        <ActionButton
+          title={
+            busy
+              ? 'PDF wird erstellt ...'
+              : '📄 PDF erstellen, speichern, drucken oder teilen'
+          }
           onPress={createRepairPdf}
           secondary
         />
@@ -508,35 +578,53 @@ export default function App() {
   const Contact = () => (
     <ScrollView contentContainerStyle={styles.content}>
       <Header title="Kontakt" />
+
       <Text style={styles.contactTitle}>{BUSINESS.name}</Text>
+
       <View style={styles.infoBox}>
         <Text style={styles.label}>Inhaber</Text>
         <Text style={styles.infoText}>{BUSINESS.owner}</Text>
+
         <Text style={styles.label}>Adresse</Text>
         <Text style={styles.infoText}>{BUSINESS.address}</Text>
         <Text style={styles.infoText}>{BUSINESS.city}</Text>
+
         <Text style={styles.label}>Telefon</Text>
         <Text style={styles.infoText}>{BUSINESS.phone}</Text>
+
         <Text style={styles.label}>E-Mail</Text>
         <Text style={styles.infoText}>{BUSINESS.email}</Text>
       </View>
 
       <Text style={styles.sectionTitle}>Öffnungszeiten</Text>
+
       <View style={styles.infoBox}>
-        <Text style={styles.infoText}>Montag – Freitag: 10:00 – 18:00 Uhr</Text>
-        <Text style={styles.infoText}>Samstag: 10:00 – 14:00 Uhr</Text>
+        <Text style={styles.infoText}>
+          Montag – Freitag: 10:00 – 18:00 Uhr
+        </Text>
+        <Text style={styles.infoText}>
+          Samstag: 10:00 – 14:00 Uhr
+        </Text>
         <Text style={styles.infoText}>Sonntag: Geschlossen</Text>
       </View>
 
       <ActionButton title="E-Mail schreiben" onPress={openWebsiteEmail} />
-      <ActionButton title="WhatsApp öffnen" onPress={openBusinessWhatsApp} secondary />
-      <ActionButton title="Reparaturanfrage" onPress={() => setPage('repair')} />
+      <ActionButton
+        title="WhatsApp öffnen"
+        onPress={openBusinessWhatsApp}
+        secondary
+      />
+      <ActionButton
+        title="Reparaturanfrage"
+        onPress={() => setPage('repair')}
+      />
     </ScrollView>
   );
 
   const Impressum = () => (
     <ScrollView contentContainerStyle={styles.content}>
       <Header title="Impressum" />
+
       <View style={styles.infoBox}>
         <Text style={styles.contactTitle}>{BUSINESS.name}</Text>
         <Text style={styles.infoText}>Inhaber: {BUSINESS.owner}</Text>
@@ -545,6 +633,7 @@ export default function App() {
         <Text style={styles.infoText}>Telefon: {BUSINESS.phone}</Text>
         <Text style={styles.infoText}>E-Mail: {BUSINESS.email}</Text>
       </View>
+
       <Text style={styles.description}>
         Bitte prüfe vor Veröffentlichung, ob alle gesetzlich erforderlichen
         Angaben für dein Unternehmen vollständig sind, insbesondere die
@@ -557,25 +646,31 @@ export default function App() {
   const Privacy = () => (
     <ScrollView contentContainerStyle={styles.content}>
       <Header title="Datenschutz" />
+
       <Text style={styles.sectionTitle}>Datenschutzhinweise</Text>
+
       <Text style={styles.description}>
         Diese App speichert Reparaturanfragen nicht auf einem eigenen Server.
         Die eingegebenen Angaben werden zunächst nur auf dem Gerät in eine
         vorbereitete E-Mail oder WhatsApp-Nachricht übernommen.
       </Text>
+
       <Text style={styles.description}>
         Eine Übermittlung erfolgt erst, wenn du die Nachricht in deiner
         E-Mail- oder WhatsApp-Anwendung selbst absendest. Dabei gelten auch
         die Datenschutzbestimmungen des jeweiligen Anbieters.
       </Text>
+
       <Text style={styles.description}>
         Wenn du eine PDF erstellst, wird sie lokal über die Druckfunktion
         deines Geräts erzeugt. Beim Teilen entscheidest du selbst, an welche
         App oder Person du die Datei weitergibst.
       </Text>
+
       <Text style={styles.description}>
         Kontakt für Datenschutzanfragen: {BUSINESS.email}
       </Text>
+
       <Text style={styles.description}>
         Bitte lasse diese Datenschutzhinweise vor der Veröffentlichung
         rechtlich prüfen und ergänze alle für dein Unternehmen erforderlichen
@@ -597,9 +692,11 @@ export default function App() {
   return (
     <SafeAreaView style={styles.safe}>
       <StatusBar barStyle="light-content" backgroundColor={BG} />
+
       <View style={styles.app}>
         <View style={styles.topBar}>
           <Text style={styles.topBrand}>XPERT</Text>
+
           <TouchableOpacity
             style={styles.gearButton}
             onPress={() =>
@@ -630,10 +727,21 @@ export default function App() {
               style={styles.navItem}
               onPress={() => setPage(key)}
             >
-              <Text style={[styles.navIcon, page === key && styles.navActive]}>
+              <Text
+                style={[
+                  styles.navIcon,
+                  page === key && styles.navActive,
+                ]}
+              >
                 {icon}
               </Text>
-              <Text style={[styles.navLabel, page === key && styles.navActive]}>
+
+              <Text
+                style={[
+                  styles.navLabel,
+                  page === key && styles.navActive,
+                ]}
+              >
                 {label}
               </Text>
             </TouchableOpacity>
